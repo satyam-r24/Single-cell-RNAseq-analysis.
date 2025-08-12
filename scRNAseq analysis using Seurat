@@ -1,0 +1,200 @@
+## Single cell RNA seq analysis to understand expression level of key regulatory genes in pancreatic β-cells in non-diabetic and type-2-diabetic donor datasets.
+## dataset used: NCBI GEO GSE221156
+
+## load the required packages: dplyr (for data transformation), Seurat (for scRNAseq analysis), patchwork (for combining multiple plots)
+library(dplyr)
+library(Seurat)
+library(patchwork)
+
+## load the datasets (Read10X loads 10X-formatted output (matrix.mtx + barcodes + features/genes) into R as a sparse matrix)
+diabetic1.data <- Read10X(data.dir = "/data/analysis/Sc-RNAseq/T2D")
+diabetic2.data <- Read10X(data.dir = "/data/analysis/Sc-RNAseq/T2D_2")
+diabetic3.data <- Read10X(data.dir = "/data/analysis/Sc-RNAseq/T2D_3")
+diabetic4.data <- Read10X(data.dir = "/data/analysis/Sc-RNAseq/T2D_4")
+nondiabetic1.data <- Read10X(data.dir = "/data/analysis/Sc-RNAseq/healthy_1")
+nondiabetic2.data <- Read10X(data.dir = "/data/analysis/Sc-RNAseq/healthy_2")
+nondiabetic3.data <- Read10X(data.dir = "/data/analysis/Sc-RNAseq/healthy_3")
+nondiabetic4.data <- Read10X(data.dir = "/data/analysis/Sc-RNAseq/healthy_4")
+
+## min.cells = 3: Filters out genes that are not expressed in at least 3 cells; min.features = 200: Filters out cells that do not express at least 200 different genes
+diabetic1 <- CreateSeuratObject(counts = diabetic1.data, project = "Diabetic1", min.cells = 3, min.features = 200)
+diabetic2 <- CreateSeuratObject(counts = diabetic2.data, project = "Diabetic2", min.cells = 3, min.features = 200)
+diabetic3 <- CreateSeuratObject(counts = diabetic3.data, project = "Diabetic3", min.cells = 3, min.features = 200)
+diabetic4 <- CreateSeuratObject(counts = diabetic4.data, project = "Diabetic4", min.cells = 3, min.features = 200)
+nondiabetic1 <- CreateSeuratObject(counts = nondiabetic1.data, project = "NonDiabetic1", min.cells = 3, min.features = 200)
+nondiabetic2 <- CreateSeuratObject(counts = nondiabetic2.data, project = "NonDiabetic2", min.cells = 3, min.features = 200)
+nondiabetic3 <- CreateSeuratObject(counts = nondiabetic3.data, project = "NonDiabetic3", min.cells = 3, min.features = 200)
+nondiabetic4 <- CreateSeuratObject(counts = nondiabetic4.data, project = "NonDiabetic4", min.cells = 3, min.features = 200)
+
+
+## QUALITY CONTROL
+
+# Quality control - filter cells based on mitochondrial content (MT) and feature counts
+diabetic1[["percent.mt"]] <- PercentageFeatureSet(diabetic1, pattern = "^MT-")
+diabetic2[["percent.mt"]] <- PercentageFeatureSet(diabetic2, pattern = "^MT-")
+diabetic3[["percent.mt"]] <- PercentageFeatureSet(diabetic3, pattern = "^MT-")
+diabetic4[["percent.mt"]] <- PercentageFeatureSet(diabetic4, pattern = "^MT-")
+nondiabetic1[["percent.mt"]] <- PercentageFeatureSet(nondiabetic1, pattern = "^MT-")
+nondiabetic2[["percent.mt"]] <- PercentageFeatureSet(nondiabetic2, pattern = "^MT-")
+nondiabetic3[["percent.mt"]] <- PercentageFeatureSet(nondiabetic3, pattern = "^MT-")
+nondiabetic4[["percent.mt"]] <- PercentageFeatureSet(nondiabetic4, pattern = "^MT-")
+
+## Visualize QC metrics: nFeature_RNA (number of gene detected per cell), nCount_RNA (total UMI count per cell), percent.mt (% of mitochondrial genes)
+VlnPlot(diabetic1, features = c("nFeature_RNA", "nCount_RNA", "percent.mt"), ncol = 3)
+VlnPlot(diabetic2, features = c("nFeature_RNA", "nCount_RNA", "percent.mt"), ncol = 3)
+VlnPlot(diabetic3, features = c("nFeature_RNA", "nCount_RNA", "percent.mt"), ncol = 3)
+VlnPlot(diabetic4, features = c("nFeature_RNA", "nCount_RNA", "percent.mt"), ncol = 3)
+VlnPlot(nondiabetic1, features = c("nFeature_RNA", "nCount_RNA", "percent.mt"), ncol = 3)
+VlnPlot(nondiabetic2, features = c("nFeature_RNA", "nCount_RNA", "percent.mt"), ncol = 3)
+VlnPlot(nondiabetic3, features = c("nFeature_RNA", "nCount_RNA", "percent.mt"), ncol = 3)
+VlnPlot(nondiabetic4, features = c("nFeature_RNA", "nCount_RNA", "percent.mt"), ncol = 3)
+
+plot1 <- FeatureScatter(diabetic1, feature1 = "nCount_RNA", feature2 = "percent.mt")
+plot2 <- FeatureScatter(diabetic1, feature1 = "nCount_RNA", feature2 = "nFeature_RNA")
+plot1 + plot2
+
+plot1 <- FeatureScatter(diabetic2, feature1 = "nCount_RNA", feature2 = "percent.mt")
+plot2 <- FeatureScatter(diabetic2, feature1 = "nCount_RNA", feature2 = "nFeature_RNA")
+plot1 + plot2
+plot1 <- FeatureScatter(diabetic3, feature1 = "nCount_RNA", feature2 = "percent.mt")
+plot2 <- FeatureScatter(diabetic3, feature1 = "nCount_RNA", feature2 = "nFeature_RNA")
+plot1 + plot2
+plot1 <- FeatureScatter(diabetic4, feature1 = "nCount_RNA", feature2 = "percent.mt")
+plot2 <- FeatureScatter(diabetic4, feature1 = "nCount_RNA", feature2 = "nFeature_RNA")
+plot1 + plot2
+plot1 <- FeatureScatter(nondiabetic1, feature1 = "nCount_RNA", feature2 = "percent.mt")
+plot2 <- FeatureScatter(nondiabetic1, feature1 = "nCount_RNA", feature2 = "nFeature_RNA")
+plot1 + plot2
+plot1 <- FeatureScatter(nondiabetic2, feature1 = "nCount_RNA", feature2 = "percent.mt")
+plot2 <- FeatureScatter(nondiabetic2, feature1 = "nCount_RNA", feature2 = "nFeature_RNA")
+plot1 + plot2
+plot1 <- FeatureScatter(nondiabetic3, feature1 = "nCount_RNA", feature2 = "percent.mt")
+plot2 <- FeatureScatter(nondiabetic3, feature1 = "nCount_RNA", feature2 = "nFeature_RNA")
+plot1 + plot2
+plot1 <- FeatureScatter(nondiabetic4, feature1 = "nCount_RNA", feature2 = "percent.mt")
+plot2 <- FeatureScatter(nondiabetic4, feature1 = "nCount_RNA", feature2 = "nFeature_RNA")
+plot1 + plot2
+
+#############################################
+
+## subset filter cells in each seurat objects based on QC metrics 
+## Remove cells having less than 200 (low quality) and more than 7500 detected genes (potential doublets); remove cells with more than 25% mitochondrial genes (high mt % indicate dying cells)
+diabetic1 <- subset(diabetic1, subset = nFeature_RNA > 200 & nFeature_RNA < 7500 & percent.mt < 25)
+diabetic2 <- subset(diabetic2, subset = nFeature_RNA > 200 & nFeature_RNA < 7500 & percent.mt < 25)
+diabetic3 <- subset(diabetic3, subset = nFeature_RNA > 200 & nFeature_RNA < 7500 & percent.mt < 25)
+diabetic4 <- subset(diabetic4, subset = nFeature_RNA > 200 & nFeature_RNA < 7500 & percent.mt < 25)
+nondiabetic1 <- subset(nondiabetic1, subset = nFeature_RNA > 200 & nFeature_RNA < 7500 & percent.mt < 25)
+nondiabetic2 <- subset(nondiabetic2, subset = nFeature_RNA > 200 & nFeature_RNA < 7500 & percent.mt < 25)
+nondiabetic3 <- subset(nondiabetic3, subset = nFeature_RNA > 200 & nFeature_RNA < 7500 & percent.mt < 25)
+nondiabetic4 <- subset(nondiabetic4, subset = nFeature_RNA > 200 & nFeature_RNA < 7500 & percent.mt < 25)
+
+##########################################################################################
+
+## Normalize and find variable features for each dataset
+diabetic1 <- NormalizeData(diabetic1) %>% FindVariableFeatures(selection.method = "vst", nfeatures = 2000)
+diabetic2 <- NormalizeData(diabetic2) %>% FindVariableFeatures(selection.method = "vst", nfeatures = 2000)
+diabetic3 <- NormalizeData(diabetic3) %>% FindVariableFeatures(selection.method = "vst", nfeatures = 2000)
+diabetic4 <- NormalizeData(diabetic4) %>% FindVariableFeatures(selection.method = "vst", nfeatures = 2000)
+nondiabetic1 <- NormalizeData(nondiabetic1) %>% FindVariableFeatures(selection.method = "vst", nfeatures = 2000)
+nondiabetic2 <- NormalizeData(nondiabetic2) %>% FindVariableFeatures(selection.method = "vst", nfeatures = 2000)
+nondiabetic3 <- NormalizeData(nondiabetic3) %>% FindVariableFeatures(selection.method = "vst", nfeatures = 2000)
+nondiabetic4 <- NormalizeData(nondiabetic4) %>% FindVariableFeatures(selection.method = "vst", nfeatures = 2000)
+
+
+## Select integration features (common variable genes from to integrate the datasets)
+features <- SelectIntegrationFeatures(object.list = list(diabetic1, diabetic2, diabetic3, diabetic4, nondiabetic1, nondiabetic2, nondiabetic3, nondiabetic4), nfeatures = 2000)
+
+## Prepare the objects for integration
+diabetic1 <- ScaleData(diabetic1, features = features)
+diabetic2 <- ScaleData(diabetic2, features = features)
+diabetic3 <- ScaleData(diabetic3, features = features)
+diabetic4 <- ScaleData(diabetic4, features = features)
+nondiabetic1 <- ScaleData(nondiabetic1, features = features)
+nondiabetic2 <- ScaleData(nondiabetic2, features = features)
+nondiabetic3 <- ScaleData(nondiabetic3, features = features)
+nondiabetic4 <- ScaleData(nondiabetic4, features = features)
+
+## Find anchors for dataset integration, act as reference point to merge datasets 
+anchors <- FindIntegrationAnchors(object.list = list(diabetic1, diabetic2, diabetic3, diabetic4, nondiabetic1, nondiabetic2, nondiabetic3, nondiabetic4), anchor.features = features)
+
+## Integrate the data
+combined <- IntegrateData(anchorset = anchors)
+
+## Scale the integrated data
+combined <- ScaleData(combined)
+
+## Perform PCA, a linear dimensionality reduction technique that summarizes the major sources of variation in the data into a few principal components (PCs).
+combined <- RunPCA(combined)
+
+## Run UMAP (a non-linear dimensionality reduction technique. It uses the top 30 PCs (dims = 1:30) to place cells with similar expression profiles close to each other in a 2D plot) for visualization
+combined <- RunUMAP(combined, dims = 1:30)
+
+## Visualize UMAP, colored by diabetic vs non-diabetic status
+DimPlot(combined, reduction = "umap", group.by = "orig.ident")
+
+## Cluster cells
+combined <- FindNeighbors(combined, dims = 1:30)
+combined <- FindClusters(combined, resolution = 0.5)
+
+## Visualize clusters
+DimPlot(combined, reduction = "umap", label = TRUE)
+
+## Perform differential expression analysis
+#markers <- FindMarkers(combined, ident.1 = "Diabetic", ident.2 = "NonDiabetic", min.pct = 0.25)
+
+## Create a new condition column in the metadata (each cells labelled Diabetic/NonDiabetic based on original sample id)
+combined$condition <- ifelse(
+  combined$orig.ident %in% c("Diabetic1", "Diabetic2", "Diabetic3", "Diabetic4"),
+  "Diabetic",
+  "NonDiabetic"
+)
+
+## Check the unique values in the condition column
+table(combined$condition)
+markers <- FindMarkers(
+  combined,
+  ident.1 = "Diabetic",
+  ident.2 = "NonDiabetic",
+  group.by = "condition",
+  min.pct = 0.25
+)
+
+## View top markers
+head(markers)
+
+## Visualize top markers with a violin plot
+VlnPlot(combined, features = head(rownames(markers), 10), group.by = "orig.ident")
+
+new.cluster.ids <- c("Beta", "alpha", "gamma", "Beta", "alpha", "ductal","acinar","Delta", "acinar", "Beta", "non-endocrine", "alpha","non-endocrine", "non-endocrine", "non-endocrine", "gamma", "non-endocrine",  "Beta", "Immune cells", "Immune cells", "non-endocrine")
+
+names(new.cluster.ids) <- levels(combined)
+combined <- RenameIdents(combined, new.cluster.ids)
+DimPlot(combined, reduction = "umap", label = TRUE, label.size = 6, pt.size = 0.5) + NoLegend()
+
+############################################
+
+## Switch to the RNA assay for raw counts
+DefaultAssay(combined) <- "RNA"
+
+## Plot the violin plots for different genes (SLC2AX, SLC2AY, SLC2AZ), grouped by the 'condition' (Diabetic vs NonDiabetic)
+VlnPlot(combined, features = c("SLC2AX", "SLC2AY", "SLC2AZ"), 
+        layer = "counts", log = TRUE, group.by = "condition")
+
+##facet_wrap: used to visualise the gene expression change in each cell type
+VlnPlot(combined, 
+        features = c("SLC2AX"), 
+        layer = "counts", log = TRUE, group.by = "condition") +
+    facet_wrap(~ Idents(combined))  # Use the named clusters for facetting
+
+VlnPlot(combined, features = c("SLC2AX", "SLC2AY", "SLC2AZ"), 
+     layer = "counts", log = TRUE, group.by = "condition")
+
+
+##################################
+## changing colours of violin plots
+
+## Custom color vector
+custom_colors <- c("blue", "red")  # Change these colors as needed
+
+VlnPlot(combined, features = head(rownames(markers), 10), group.by = "orig.ident", cols = custom_colors)
+
